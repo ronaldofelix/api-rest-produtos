@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Produtos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { margin-bottom: 20px; }
+        input[type="text"], input[type="number"] { padding: 8px; width: 200px; }
+        button { padding: 8px 12px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>Gerenciador de Produtos</h1>
+
+    <form id="productForm">
+        <input type="hidden" id="productId">
+        <label for="productName">Nome:</label>
+        <input type="text" id="productName" required>
+        <label for="productPrice">Preço:</label>
+        <input type="number" id="productPrice" step="0.01" required>
+        <button type="submit">Adicionar Produto</button>
+    </form>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>Preço</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="productsTableBody">
+            </tbody>
+    </table>
+
+    <script>
+        // Substitua esta URL pela URL da sua aplicação no Railway
+        const API_URL = 'http://localhost:8080/produtos';
+
+        // Função para carregar e exibir os produtos
+        async function loadProducts() {
+            const response = await fetch(API_URL);
+            const products = await response.json();
+            const tableBody = document.getElementById('productsTableBody');
+            tableBody.innerHTML = '';
+
+            products.forEach(product => {
+                const row = `
+                    <tr>
+                        <td>${product.id}</td>
+                        <td>${product.nome}</td>
+                        <td>R$ ${product.preco.toFixed(2)}</td>
+                        <td>
+                            <button onclick="editProduct(${product.id}, '${product.nome}', ${product.preco})">Editar</button>
+                            <button onclick="deleteProduct(${product.id})">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+        }
+
+        // Função para adicionar um novo produto
+        async function addProduct(event) {
+            event.preventDefault();
+            const id = document.getElementById('productId').value;
+            const nome = document.getElementById('productName').value;
+            const preco = document.getElementById('productPrice').value;
+            
+            const product = { nome, preco };
+
+            let method = 'POST';
+            let url = API_URL;
+
+            if (id) {
+                method = 'PUT';
+                url = `${API_URL}/${id}`;
+            }
+
+            await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(product)
+            });
+
+            document.getElementById('productForm').reset();
+            document.getElementById('productId').value = '';
+            document.querySelector('button[type="submit"]').innerText = 'Adicionar Produto';
+            loadProducts();
+        }
+
+        // Função para preencher o formulário para edição
+        function editProduct(id, nome, preco) {
+            document.getElementById('productId').value = id;
+            document.getElementById('productName').value = nome;
+            document.getElementById('productPrice').value = preco;
+            document.querySelector('button[type="submit"]').innerText = 'Atualizar Produto';
+        }
+
+        // Função para excluir um produto
+        async function deleteProduct(id) {
+            await fetch(`${API_URL}/${id}`, {
+                method: 'DELETE'
+            });
+            loadProducts();
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', loadProducts);
+        document.getElementById('productForm').addEventListener('submit', addProduct);
+    </script>
+</body>
+</html>
